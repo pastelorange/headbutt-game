@@ -1,10 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
     Animator animator;
+    Rigidbody rb;
 
     [SerializeField]
     GameObject otherPlayer;
@@ -15,15 +14,23 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     Collider headbutt, head, body;
 
+    [SerializeField]
+    GameObject healthBar;
+
+    bool isKnockedOut;
+
     // Start is called before the first frame update
     void Start()
     {
         animator = GetComponent<Animator>();
+        rb = GetComponent<Rigidbody>();
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (isKnockedOut) return;
+
         // Make sure the player is facing the otherPlayer
         if (otherPlayer.transform.position.x < transform.position.x)
         {
@@ -34,26 +41,18 @@ public class PlayerController : MonoBehaviour
             transform.forward = new Vector3(1, 0, 0);
         }
 
-        if (isTestDummy)
-        {
-            return;
-        }
+        if (isTestDummy) return;
 
         // Relative movement controls using A and D keys. These forward and back controls are relative to the direction the player is facing.
         if (Input.GetKey(KeyCode.A))
         {
             transform.position += new Vector3(0.01f, 0, 0);
             animator.SetBool("StepForward", true);
-
-            // Print state of animator bool
-            print("StepForward: " + animator.GetBool("StepForward"));
         }
         else if (Input.GetKey(KeyCode.D))
         {
             transform.position += new Vector3(-0.01f, 0, 0);
             animator.SetBool("StepBackward", true);
-            // Print state of animator bool
-            print("StepBackward: " + animator.GetBool("StepBackward"));
         }
         else
         {
@@ -69,12 +68,25 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Runs partway through the headbutt animation, when the headbutt collider is in position to hit the other player
+    // Runs if the headbutt successfully hits the other player
+    // This animation event is roughly halfway through the headbutt animation
     public void OnHeadbuttHit()
     {
         // Check if headbutt collider hit the "Head" hitbox of the other player and the other player is not already in the "HeadHit" animation
         if (headbutt.bounds.Intersects(otherPlayer.GetComponent<PlayerController>().head.bounds) && !otherPlayer.GetComponent<Animator>().GetBool("HeadHit"))
         {
+            // Stop the animation on this player
+            animator.SetBool("Headbutt", false);
+
+            // Reduce the other player's health nested in the healthBar object
+            otherPlayer.GetComponent<PlayerController>().healthBar.GetComponent<HealthBar>().health -= 100;
+
+            // If that blow was the final blow, then knockout the other player
+            if (otherPlayer.GetComponent<PlayerController>().healthBar.GetComponent<HealthBar>().health <= 0)
+            {
+                otherPlayer.GetComponent<PlayerController>().RagdollKnockout();
+            }
+
             // Play the hit animation on the other player
             otherPlayer.GetComponent<Animator>().SetBool("HeadHit", true);
 
@@ -89,8 +101,7 @@ public class PlayerController : MonoBehaviour
                 otherPlayer.transform.position += new Vector3(knockbackDistance, 0, 0);
             }
 
-            // Stop the animation on this player
-            animator.SetBool("Headbutt", false);
+
         }
     }
 
@@ -107,21 +118,33 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("Headbutt", false);
     }
 
-    /*private void OnCollisionEnter(Collision collision)
+    void RagdollKnockout()
     {
-        //print("Collision detected with " + collision.gameObject.name);
+        Debug.Log("Knockout!");
 
-        // If headbutt is true, then check the collision
-        if (animator.GetBool("Headbutt"))
+        isKnockedOut = true;
+
+        // Disable animations
+        animator.enabled = false;
+
+        // Get all the rigidbodies
+        Rigidbody[] rigidbodies = GetComponentsInChildren<Rigidbody>();
+
+        // Enable all the rigidbodies
+        foreach (Rigidbody rb in rigidbodies)
         {
-            // Check if this gameobject's box collider is colliding with the other player's box collider
-            if (GetComponent<MeshCollider>().bounds.Intersects(otherPlayer.GetComponent<MeshCollider>().bounds))
-            {
-                print("Headbutt hit!");
-
-                // Play the hit animation on the other player
-                otherPlayer.GetComponent<Animator>().SetBool("HeadHit", true);
-            }
+            rb.isKinematic = false;
+            rb.useGravity = true;
         }
-    }*/
+
+        // Apply a force relative to the direction the player is facing
+        if (transform.forward.x > 0)
+        {
+            rigidbodies[0].AddForce(new Vector3(-40, 5, 0), ForceMode.Impulse);
+        }
+        else
+        {
+            rigidbodies[0].AddForce(new Vector3(40, 5, 0), ForceMode.Impulse);
+        }
+    }
 }
