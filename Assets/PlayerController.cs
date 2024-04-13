@@ -1,9 +1,9 @@
+using System.Collections;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
     Animator animator;
-    Rigidbody rb;
 
     [SerializeField]
     GameObject otherPlayer;
@@ -19,11 +19,13 @@ public class PlayerController : MonoBehaviour
 
     bool isKnockedOut;
 
+    float crankedTimer = 10f;
+
     // Start is called before the first frame update
     void Start()
     {
         animator = GetComponent<Animator>();
-        rb = GetComponent<Rigidbody>();
+        StartCoroutine(CrankedTimer());
     }
 
     // Update is called once per frame
@@ -101,7 +103,7 @@ public class PlayerController : MonoBehaviour
                 otherPlayer.transform.position += new Vector3(knockbackDistance, 0, 0);
             }
 
-
+            crankedTimer = 10f; // Reset the timer
         }
     }
 
@@ -145,6 +147,21 @@ public class PlayerController : MonoBehaviour
         else
         {
             rigidbodies[0].AddForce(new Vector3(40, 5, 0), ForceMode.Impulse);
+        }
+    }
+
+    IEnumerator CrankedTimer()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(1f);
+            crankedTimer--;
+
+            if (crankedTimer <= 0)
+            {
+                isKnockedOut = true;
+                RagdollKnockout();
+            }
         }
     }
 }
