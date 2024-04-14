@@ -23,13 +23,6 @@ public class PlayerController : MonoBehaviour
     Rigidbody rb;
     bool isGrounded = false;
 
-    float? lastGroundedTime;
-    float? jumpButtonPressedTime;
-    float jumpButtonGracePeriod = 0.2f;
-    float ySpeed;
-    bool isJumping = false;
-    float jumpSpeed = 7f;
-
     // Start is called before the first frame update
     void Start()
     {
@@ -77,48 +70,18 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("Headbutt", true);
         }
 
-        /*
-        // Jumping code below
-        ySpeed += Physics.gravity.y * Time.deltaTime;
+        // Jumping
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        {
+            rb.velocity = Vector3.up * 5;
+            animator.SetBool("IsJumping", true);
+            isGrounded = false;
+        }
 
         if (isGrounded)
         {
-            lastGroundedTime = Time.time;
-        }
-
-        if (Input.GetButtonDown("Jump"))
-        {
-            jumpButtonPressedTime = Time.time;
-        }
-
-        if (Time.time - lastGroundedTime <= jumpButtonGracePeriod)
-        {
-            ySpeed = -0.5f;
-            animator.SetBool("IsGrounded", true);
-            isGrounded = true;
             animator.SetBool("IsJumping", false);
-            isJumping = false;
-            animator.SetBool("IsFalling", false);
-
-            if (Time.time - jumpButtonPressedTime <= jumpButtonGracePeriod)
-            {
-                ySpeed = jumpSpeed;
-                animator.SetBool("IsJumping", true);
-                isJumping = true;
-                jumpButtonPressedTime = null;
-                lastGroundedTime = null;
-            }
         }
-        else
-        {
-            animator.SetBool("IsGrounded", false);
-            isGrounded = false;
-
-            if ((isJumping && ySpeed < 0) || ySpeed < -2)
-            {
-                animator.SetBool("IsFalling", true);
-            }
-        }*/
     }
 
     // Runs if the headbutt successfully hits the other player
@@ -145,9 +108,9 @@ public class PlayerController : MonoBehaviour
 
             // Knockback the other player (x-coord) with a force
             if (transform.forward.x > 0)
-                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(10, 5, 0), ForceMode.Impulse);
+                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(5, 5, 0), ForceMode.Impulse);
             else
-                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(-10, 5, 0), ForceMode.Impulse);
+                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(-5, 5, 0), ForceMode.Impulse);
 
             crankedTimer = 10f; // Reset the timer
         }
@@ -166,36 +129,6 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("Headbutt", false);
     }
 
-    void RagdollKnockout()
-    {
-        Debug.Log("Knockout!");
-
-        isKnockedOut = true;
-
-        // Disable animations
-        animator.enabled = false;
-
-        // Get all the rigidbodies
-        Rigidbody[] rigidbodies = GetComponentsInChildren<Rigidbody>();
-
-        // Enable all the rigidbodies
-        foreach (Rigidbody rb in rigidbodies)
-        {
-            rb.isKinematic = false;
-            rb.useGravity = true;
-        }
-
-        // Apply a force relative to the direction the player is facing
-        if (transform.forward.x > 0)
-        {
-            rigidbodies[0].AddForce(new Vector3(-40, 5, 0), ForceMode.Impulse);
-        }
-        else
-        {
-            rigidbodies[0].AddForce(new Vector3(40, 5, 0), ForceMode.Impulse);
-        }
-    }
-
     IEnumerator CrankedTimer()
     {
         while (true)
@@ -211,33 +144,36 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter(Collider other)
+    void OnCollisionEnter(Collision other)
     {
-        if (other.CompareTag("Ground"))
+        if (other.collider.CompareTag("Ground"))
         {
-            Debug.Log("OnTriggerEnter Grounded");
+            Debug.Log("OnStayCollisionEnter Grounded");
             isGrounded = true;
             rb.useGravity = false;
+            animator.enabled = true;
         }
     }
 
-    void OnTriggerStay(Collider other)
+    void OnCollisionExit(Collision other)
     {
-        if (other.CompareTag("Ground"))
+        if (other.collider.CompareTag("Ground"))
         {
-            Debug.Log("OnTriggerStay Grounded");
-            isGrounded = true;
-            rb.useGravity = false;
-        }
-    }
-
-    void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Ground"))
-        {
-            Debug.Log("OnTriggerExit Grounded FALSE");
+            Debug.Log("OnCollisionExit Grounded FALSE");
             isGrounded = false;
             rb.useGravity = true;
+            StartCoroutine(AirTimeRagdoll());
+        }
+    }
+
+    // If the player is in the air for a certain amount of time, then ragdoll them
+    IEnumerator AirTimeRagdoll()
+    {
+        while (!isGrounded)
+        {
+            yield return new WaitForSeconds(0.1f);
+            animator.enabled = false;
+            Debug.Log("Ragdolling...");
         }
     }
 }
