@@ -14,9 +14,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     Collider headCollider;
 
-    [SerializeField]
-    //GameObject healthBar;
-
     bool isKnockedOut;
     float crankedTimer = 10f;
 
@@ -94,23 +91,14 @@ public class PlayerController : MonoBehaviour
             // Stop the animation on this player
             animator.SetBool("Headbutt", false);
 
-            // Reduce the other player's health nested in the healthBar object
-            /*otherPlayer.GetComponent<PlayerController>().healthBar.GetComponent<HealthBar>().health -= 100;
-
-            // If that blow was the final blow, then knockout the other player
-            if (otherPlayer.GetComponent<PlayerController>().healthBar.GetComponent<HealthBar>().health <= 0)
-            {
-                otherPlayer.GetComponent<PlayerController>().RagdollKnockout();
-            }*/
-
             // Play the hit animation on the other player
             otherPlayer.GetComponent<Animator>().SetBool("HeadHit", true);
 
             // Knockback the other player (x-coord) with a force
             if (transform.forward.x > 0)
-                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(5, 5, 0), ForceMode.Impulse);
+                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(2, 1, 0), ForceMode.Impulse);
             else
-                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(-5, 5, 0), ForceMode.Impulse);
+                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(-2, 1, 0), ForceMode.Impulse);
 
             crankedTimer = 10f; // Reset the timer
         }
@@ -120,6 +108,7 @@ public class PlayerController : MonoBehaviour
     public void ExitPlayerHitByHeadbutt()
     {
         animator.SetBool("HeadHit", false);
+        Debug.Log("Exiting HeadHit");
     }
 
     // Runs at the end of the headbutt animation
@@ -144,22 +133,22 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // Player is on ground
     void OnCollisionEnter(Collision other)
     {
         if (other.collider.CompareTag("Ground"))
         {
-            Debug.Log("OnStayCollisionEnter Grounded");
             isGrounded = true;
             rb.useGravity = false;
             animator.enabled = true;
         }
     }
 
+    // Player is in the air
     void OnCollisionExit(Collision other)
     {
         if (other.collider.CompareTag("Ground"))
         {
-            Debug.Log("OnCollisionExit Grounded FALSE");
             isGrounded = false;
             rb.useGravity = true;
             StartCoroutine(AirTimeRagdoll());
@@ -175,5 +164,7 @@ public class PlayerController : MonoBehaviour
             animator.enabled = false;
             Debug.Log("Ragdolling...");
         }
+
+        animator.enabled = true;
     }
 }
