@@ -15,29 +15,35 @@ public class CrankedTimer : MonoBehaviour
         text = GetComponent<Text>();
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (countingDown && timeLeft > 0)
-        {
-            // Update the timer
-            text.text = $"Hit each other in {timeLeft:0} secs or DIE";
-            timeLeft -= Time.deltaTime;
-        }
-        else
+        if (!countingDown)
         {
             text.text = "";
-            timeLeft = 10f;
-            countingDown = false;
         }
-
-        if (countingDown && timeLeft <= 0)
+        else if (timeLeft > 10)
         {
-            // Both players are knocked out
-            Debug.Log("Both players are knocked out");
-
+            // Don't display the countdown when timeLeft is greater than 10
+            text.text = "";
+            timeLeft -= Time.deltaTime;
+        }
+        else if (timeLeft > 0)
+        {
+            // Start displaying the countdown when timeLeft is 10 or less
+            text.text = $"HIT EACH OTHER IN {timeLeft:0}s OR DIE";
+            timeLeft -= Time.deltaTime;
+        }
+        else if (timeLeft <= 0)
+        {
+            text.text = "";
             player1.GetComponent<PlayerController>().KnockOut();
             player2.GetComponent<PlayerController>().KnockOut();
         }
+    }
+    public void ResetTimer()
+    {
+        countingDown = true; // Start the countdown again
+        timeLeft = 20f;
+        text.text = "";
     }
 }

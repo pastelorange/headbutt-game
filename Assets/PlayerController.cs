@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
@@ -17,28 +18,35 @@ public class PlayerController : MonoBehaviour
     Collider headCollider;
 
     [SerializeField]
-    Text forceMultiplierText;
+    Text forceMultiplierText, livesLeftText;
 
     [SerializeField]
     GameObject crankedTimer;
 
-    int forceMultiplier = 1;
-    bool isKnockedOut;
-    bool isGrounded = false;
-    float timeSinceLastAttack = 0f;
+    [SerializeField]
+    int lives = 3;
 
+    [SerializeField]
+    bool isPlayer1;
+
+    int forceMultiplier = 1;
+    public bool isGrounded = false;
+    float timeSinceLastAttack = 0f;
+    bool gamePaused = false;
 
     // Start is called before the first frame update
     void Start()
     {
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
+        livesLeftText.text = $"{lives} LIVES LEFT";
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (isKnockedOut) return;
+        if (gamePaused) return;
+        if (isTestDummy) return; // For debugging
 
         timeSinceLastAttack += Time.deltaTime;
 
@@ -49,51 +57,88 @@ public class PlayerController : MonoBehaviour
         }
 
         // Make sure the player is facing the otherPlayer
-        if (otherPlayer.transform.position.x < transform.position.x)
+        // Calculate the direction vector from this player to the other player
+        Vector3 directionToOtherPlayer = otherPlayer.transform.position - transform.position;
+
+        // Remove any vertical component from the direction vector
+        directionToOtherPlayer.y = 0;
+
+        // Set this player's forward direction to the direction vector
+        transform.forward = directionToOtherPlayer;
+
+        if (isPlayer1)
         {
-            transform.forward = new Vector3(-1, 0, 0);
+            // PLAYER 1 CONTROLS
+            // Relative movement controls using A and D keys. These forward and back controls are relative to the direction the player is facing.
+            if (Input.GetKey(KeyCode.D))
+            {
+                transform.position += new Vector3(-0.02f, 0, 0);
+                animator.SetBool("IsMoving", true);
+            }
+            else if (Input.GetKey(KeyCode.A))
+            {
+                transform.position += new Vector3(0.02f, 0, 0);
+                animator.SetBool("IsMoving", true);
+            }
+            else
+            {
+                animator.SetBool("IsMoving", false);
+            }
+
+            // Jumping
+            if (Input.GetKeyDown(KeyCode.W) && isGrounded)
+            {
+                rb.velocity = Vector3.up * 10;
+                animator.SetBool("IsJumping", true);
+                isGrounded = false;
+            }
+            if (isGrounded)
+            {
+                animator.SetBool("IsJumping", false);
+            }
+
+            // Attack
+            if (Input.GetKeyDown(KeyCode.S))
+            {
+                animator.SetBool("Headbutt", true);
+            }
         }
         else
         {
-            transform.forward = new Vector3(1, 0, 0);
-        }
+            // PLAYER 2 CONTROLS
+            // Relative movement controls using J and L keys. These forward and back controls are relative to the direction the player is facing.
+            if (Input.GetKey(KeyCode.L))
+            {
+                transform.position += new Vector3(-0.02f, 0, 0);
+                animator.SetBool("IsMoving", true);
+            }
+            else if (Input.GetKey(KeyCode.J))
+            {
+                transform.position += new Vector3(0.02f, 0, 0);
+                animator.SetBool("IsMoving", true);
+            }
+            else
+            {
+                animator.SetBool("IsMoving", false);
+            }
 
-        if (isTestDummy) return;
+            // Jumping
+            if (Input.GetKeyDown(KeyCode.I) && isGrounded)
+            {
+                rb.velocity = Vector3.up * 10;
+                animator.SetBool("IsJumping", true);
+                isGrounded = false;
+            }
+            if (isGrounded)
+            {
+                animator.SetBool("IsJumping", false);
+            }
 
-        // Relative movement controls using A and D keys. These forward and back controls are relative to the direction the player is facing.
-        if (Input.GetKey(KeyCode.A))
-        {
-            transform.position += new Vector3(0.03f, 0, 0);
-            animator.SetBool("IsMoving", true);
-        }
-        else if (Input.GetKey(KeyCode.D))
-        {
-            transform.position += new Vector3(-0.03f, 0, 0);
-            animator.SetBool("IsMoving", true);
-        }
-        else
-        {
-            animator.SetBool("IsMoving", false);
-        }
-
-        // Headbutt attack
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            animator.SetBool("Headbutt", true);
-
-            // TODO: Freeze transform position while headbutting
-        }
-
-        // Jumping
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
-        {
-            rb.velocity = Vector3.up * 10;
-            animator.SetBool("IsJumping", true);
-            isGrounded = false;
-        }
-        if (isGrounded)
-        {
-            animator.SetBool("IsJumping", false);
+            // Headbutt
+            if (Input.GetKeyDown(KeyCode.K))
+            {
+                animator.SetBool("Headbutt", true);
+            }
         }
     }
 
@@ -112,15 +157,15 @@ public class PlayerController : MonoBehaviour
 
             // Knockback the other player (x-coord) with a force
             if (transform.forward.x > 0)
-                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(2, 1, 0) * forceMultiplier, ForceMode.Impulse);
+                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(3, 1, 0) * forceMultiplier, ForceMode.Impulse);
             else
-                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(-2, 1, 0 * forceMultiplier), ForceMode.Impulse);
+                otherPlayer.GetComponent<Rigidbody>().AddForce(new Vector3(-3, 1, 0) * forceMultiplier, ForceMode.Impulse);
 
             forceMultiplier++; // Increase the force for the next headbutt
-            forceMultiplierText.text = forceMultiplier + "x"; // Update the UI text
+            forceMultiplierText.text = forceMultiplier + "x FORCE"; // Update the UI text
 
             timeSinceLastAttack = 0f; // Reset the timer
-            crankedTimer.GetComponent<CrankedTimer>().countingDown = false; // Hide the UI timer
+            crankedTimer.GetComponent<CrankedTimer>().ResetTimer(); // Reset the timer
         }
     }
 
@@ -137,7 +182,7 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("Headbutt", false);
     }
 
-    // Player is on ground
+    // Player touches collider
     void OnCollisionEnter(Collision other)
     {
         if (other.collider.CompareTag("Ground"))
@@ -146,16 +191,21 @@ public class PlayerController : MonoBehaviour
             rb.useGravity = false;
             animator.enabled = true;
         }
+
+        if (other.collider.CompareTag("Killzone"))
+        {
+            KnockOut();
+        }
     }
 
-    // Player is in the air
+    // Player no longer touching collider
     void OnCollisionExit(Collision other)
     {
         if (other.collider.CompareTag("Ground"))
         {
             isGrounded = false;
             rb.useGravity = true;
-            StartCoroutine(AirTimeRagdoll());
+            //StartCoroutine(AirTimeRagdoll());
         }
     }
 
@@ -164,7 +214,7 @@ public class PlayerController : MonoBehaviour
     {
         while (!isGrounded)
         {
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds(2f);
             animator.enabled = false;
             Debug.Log("Ragdolling...");
         }
@@ -175,7 +225,38 @@ public class PlayerController : MonoBehaviour
     // Player is knocked out
     public void KnockOut()
     {
-        isKnockedOut = true;
-        Debug.Log("Player is knocked out");
+        lives--;
+        livesLeftText.text = $"{lives} LIVES LEFT";
+
+        // If this player has no more lives
+        // First check if both players have no more lives
+        if (lives <= 0 && otherPlayer.GetComponent<PlayerController>().lives <= 0)
+        {
+            gamePaused = true;
+            Time.timeScale = 0; // Pause the game
+
+            // Find the WinText object and modify the text
+            GameObject.Find("WinText").GetComponent<Text>().text = "YOU BOTH SUCK";
+            return;
+        }
+        else if (lives <= 0)
+        {
+            gamePaused = true;
+            Time.timeScale = 0; // Pause the game
+
+            // Find the WinText object and modify the text
+            if (isPlayer1)
+            {
+                GameObject.Find("WinText").GetComponent<Text>().text = "PLAYER 2 WINS";
+            }
+            else
+            {
+                GameObject.Find("WinText").GetComponent<Text>().text = "PLAYER 1 WINS";
+            }
+            return;
+        }
+
+        // Respawn the player by dropping them above the stage (absolute world position)
+        transform.position = new Vector3(0, 6, 0);
     }
 }
