@@ -11,7 +11,7 @@ and comedic experience.
 Inspired by games that include odd fighting mechanics or silly physics
 such as include Divekick (2013), Gang Beasts (2017), and QWOP (2008).
 
-![screenshot](https://cdn.discordapp.com/attachments/1149428611116441600/1229552118570946581/Screenshot_2024-04-15_170444.png?ex=6792bc25&is=67916aa5&hm=b55a9dbdaf8d0816b86373d8c2437acfda9cf0d0fd38823bdfa2d3a47721b871&)
+![screenshot](https://cdn.discordapp.com/attachments/1149428611116441600/1229552118570946581/Screenshot_2024-04-15_170444.png?ex=67b3b1a5&is=67b26025&hm=82fac645955d1febece40d1fd081b0cafc0263af563e4a4a62e7a9920f266300&)
 
 ## Goals
 
